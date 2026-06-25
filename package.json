@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "vampire-llm-proxy",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "vampire-llm-proxy": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@smithy/eventstream-codec": "4.2.14",
+    "@smithy/util-utf8": "4.2.2",
+    "aws4fetch": "1.0.20",
+    "effect": "4.0.0-beta.83",
+    "xdg-basedir": "5.1.0"
+  },
+  "devDependencies": {
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.3.13",
+    "typescript": "^6.0.3"
+  }
+}
