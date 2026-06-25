@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 // vampire-llm-proxy — CLI entry point
-// Slice 1: stubs only. Business logic lands in subsequent slices.
 
 const args = process.argv.slice(2)
 const command = args[0]
@@ -13,7 +12,8 @@ if (!command) {
 }
 
 if (command === "--login") {
-  console.log("--login: not yet implemented")
+  const { runLogin } = await import("./login/index.ts")
+  await runLogin()
   process.exit(0)
 }
 
