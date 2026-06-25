@@ -599,9 +599,13 @@ const TERMINAL_TYPES = new Set(["response.completed", "response.incomplete", "re
 
 const onOutputTextDelta = (state: ParserState, event: OpenAIResponsesEvent): StepResult => {
   if (!event.delta) return [state, NO_EVENTS]
+  // Use output_index as the stable text-block ID. GHE rotates item_id per-event;
+  // using it would open a new text block on every delta → multiple content_block_start
+  // events at the same index → "Content block not found" in the Anthropic client.
+  const textId = event.output_index !== undefined ? `text-${event.output_index}` : (event.item_id ?? "text-0")
   const events: LLMEvent[] = []
   return [
-    { ...state, lifecycle: Lifecycle.textDelta(state.lifecycle, events, event.item_id ?? "text-0", event.delta) },
+    { ...state, lifecycle: Lifecycle.textDelta(state.lifecycle, events, textId, event.delta) },
     events,
   ]
 }
@@ -805,14 +809,18 @@ const onOutputItemDone = Effect.fn("OpenAIResponses.onOutputItemDone")(function*
   if (!item) return [state, NO_EVENTS] satisfies StepResult
 
   if (item.type === "function_call") {
-    if (!item.id || !item.call_id || !item.name) return [state, NO_EVENTS] satisfies StepResult
-    const tools = state.tools[item.id]
+    if (!item.call_id || !item.name) return [state, NO_EVENTS] satisfies StepResult
+    // Use output_index as the tool key (same key used in onOutputItemAdded).
+    // GHE rotates item.id between output_item.added and output_item.done.
+    const toolKey = event.output_index !== undefined ? String(event.output_index) : (item.id ?? "")
+    if (!toolKey) return [state, NO_EVENTS] satisfies StepResult
+    const tools = state.tools[toolKey]
       ? state.tools
-      : ToolStream.start(state.tools, item.id, { id: item.call_id, name: item.name })
+      : ToolStream.start(state.tools, toolKey, { id: item.call_id, name: item.name })
     const result =
       item.arguments === undefined
-        ? yield* ToolStream.finish(ADAPTER, tools, item.id)
-        : yield* ToolStream.finishWithInput(ADAPTER, tools, item.id, item.arguments)
+        ? yield* ToolStream.finish(ADAPTER, tools, toolKey)
+        : yield* ToolStream.finishWithInput(ADAPTER, tools, toolKey, item.arguments)
     const events: LLMEvent[] = []
     const resultEvents = result.events ?? []
     const lifecycle = resultEvents.length ? Lifecycle.stepStart(state.lifecycle, events) : state.lifecycle
