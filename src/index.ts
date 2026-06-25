@@ -3,12 +3,27 @@
 
 const args = process.argv.slice(2)
 const command = args[0]
-const portFlagIdx = args.indexOf("--port")
-const port = portFlagIdx !== -1 ? Number(args[portFlagIdx + 1]) : 3234
+
+const flag = (name: string) => {
+  const idx = args.indexOf(name)
+  return idx !== -1 ? args[idx + 1] : undefined
+}
+
+const port = Number(flag("--port") ?? "3234")
+const providerFlag = flag("--provider")
+const modelFlag = flag("--model")
 
 if (!command) {
-  console.log("Usage: vampire-llm-proxy <--login | --serve> [--port <number>]")
+  console.log("Usage: vampire-llm-proxy <--login | --serve> [options]")
+  console.log("       --serve [--port <n>] [--provider <id> --model <id>]")
   process.exit(0)
+}
+
+// --provider and --model must always be passed together
+if ((providerFlag && !modelFlag) || (!providerFlag && modelFlag)) {
+  console.error("Error: --provider and --model must be used together.")
+  console.error("Usage: vampire-llm-proxy --serve --provider <id> --model <id>")
+  process.exit(1)
 }
 
 if (command === "--login") {
@@ -19,11 +34,9 @@ if (command === "--login") {
 
 if (command === "--serve") {
   const { runServe } = await import("./serve/index.ts")
-  await runServe(port)
+  await runServe(port, providerFlag && modelFlag ? { provider: providerFlag, model: modelFlag } : undefined)
   // runServe keeps the process alive — no process.exit here
-}
-
-if (!["--login", "--serve"].includes(command)) {
+} else {
   console.error(`Unknown command: ${command}`)
   console.error("Usage: vampire-llm-proxy <--login | --serve> [--port <number>]")
   process.exit(1)
