@@ -161,6 +161,9 @@ export interface ServerHandle {
 export function startServer(port: number): ServerHandle {
   const server = Bun.serve({
     port,
+    // Disable idle timeout — SSE streaming responses can be long-lived.
+    // Bun's default 10s idle timeout kills connections mid-stream.
+    idleTimeout: 0,
     async fetch(req) {
       const url = new URL(req.url)
 
