@@ -63,11 +63,11 @@ function streamLLM(
         .catch((err) => {
           log.streamError(err)
           const errChunk = `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: String(err) } })}\n\n`
-          controller.enqueue(encoder.encode(errChunk))
+          try { controller.enqueue(encoder.encode(errChunk)) } catch {}
         })
         .finally(() => {
           log.response(req, Date.now() - startMs, 200)
-          controller.close()
+          try { controller.close() } catch {}
         })
     },
   })
