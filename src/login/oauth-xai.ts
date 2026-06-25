@@ -1,5 +1,4 @@
 // xAI (Grok) OAuth — device-code flow.
-// Logic extracted from OpenCode's packages/opencode/src/plugin/xai.ts
 
 const CLIENT_ID = "b1a00492-073a-47ea-816f-4c329264a828"
 const DEVICE_AUTHORIZATION_URL = "https://auth.x.ai/oauth2/device/code"
@@ -33,7 +32,7 @@ export async function startXaiDeviceFlow(): Promise<XaiDeviceStart> {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": `vampire-llm-proxy/0.1.0`,
+      "User-Agent": `claudecode-llm-adapter/0.1.0`,
     },
     body: new URLSearchParams({
       client_id: CLIENT_ID,
@@ -64,7 +63,7 @@ export async function startXaiDeviceFlow(): Promise<XaiDeviceStart> {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": `vampire-llm-proxy/0.1.0`,
+          "User-Agent": `claudecode-llm-adapter/0.1.0`,
         },
         body: new URLSearchParams({
           client_id: CLIENT_ID,

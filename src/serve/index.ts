@@ -117,7 +117,7 @@ async function pickModel(
   const available = providers.filter((prov) => credentials[prov.id] !== undefined)
 
   if (available.length === 0) {
-    p.log.error("No authenticated providers found. Run `vampire-llm-proxy --login` first.")
+    p.log.error("No authenticated providers found. Run `claudecode-llm-adapter --login` first.")
     process.exit(1)
   }
 
@@ -165,7 +165,7 @@ async function pickModel(
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 export async function runServe(port: number, flags?: ServeFlags): Promise<void> {
-  p.intro("vampire-llm-proxy — serve")
+  p.intro("claudecode-llm-adapter — serve")
 
   const credentials = await loadCredentials()
 
@@ -179,7 +179,7 @@ export async function runServe(port: number, flags?: ServeFlags): Promise<void> 
     ;({ providerId, modelId } = await pickModel(credentials))
     // Print the skip-prompt hint only after an interactive selection
     p.log.info(
-      `Next time you can skip the prompts:\n\n  vampire-llm-proxy --serve --provider ${providerId} --model ${modelId}\n`,
+      `Next time you can skip the prompts:\n\n  claudecode-llm-adapter --serve --provider ${providerId} --model ${modelId}\n`,
     )
   }
 

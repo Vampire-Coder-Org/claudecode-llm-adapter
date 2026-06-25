@@ -2,8 +2,6 @@
 //
 // Works for both github.com Copilot and Copilot Enterprise — the caller
 // passes the correct baseURL and token.
-//
-// Reference: OpenCode packages/opencode/src/plugin/github-copilot/models.ts
 
 import type { ModelEntry } from "./model-catalog.ts"
 
@@ -61,7 +59,7 @@ export async function fetchCopilotModels(
     const res = await fetch(`${baseURL}/models`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "User-Agent": "vampire-llm-proxy/0.1.0",
+        "User-Agent": "claudecode-llm-adapter/0.1.0",
         "X-GitHub-Api-Version": API_VERSION,
         Accept: "application/json",
       },

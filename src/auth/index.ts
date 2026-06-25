@@ -1,15 +1,14 @@
-// Auth service — credential storage for vampire-llm-proxy.
+// Auth service — credential storage for claudecode-llm-adapter.
 //
-// Credentials are stored at ~/.config/vampire-llm-proxy/auth.json with 0o600
-// permissions. The JSON schema is identical to OpenCode's auth.json so that
-// the two tools are interoperable at the file level.
+// Credentials are stored at ~/.config/claudecode-llm-adapter/auth.json with 0o600
+// permissions.
 //
 // Schema variants (discriminated by "type"):
 //   { type: "api",       key, metadata? }
 //   { type: "oauth",     refresh, access, expires, accountId?, enterpriseUrl? }
 //   { type: "wellknown", key, token }
 //
-// The file can be fully overridden by setting VAMPIRE_LLM_PROXY_AUTH_CONTENT
+// The file can be fully overridden by setting CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT
 // to a JSON string with the same shape — useful for CI / container deployments.
 
 import { Context, Effect, Layer, Record, Result, Schema } from "effect"
@@ -17,7 +16,7 @@ import { Path } from "../global"
 import { FSUtil } from "../fs-util"
 
 // ---------------------------------------------------------------------------
-// Schema — matches OpenCode's auth.json discriminated union exactly
+// Schema
 // ---------------------------------------------------------------------------
 
 export const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
@@ -81,9 +80,9 @@ export const layer = Layer.effect(
 
     const all = Effect.fn("Auth.all")(function* () {
       // Env-var override for CI / containers
-      if (process.env.VAMPIRE_LLM_PROXY_AUTH_CONTENT) {
+      if (process.env.CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT) {
         try {
-          return JSON.parse(process.env.VAMPIRE_LLM_PROXY_AUTH_CONTENT) as Record<string, Info>
+          return JSON.parse(process.env.CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT) as Record<string, Info>
         } catch {}
       }
 

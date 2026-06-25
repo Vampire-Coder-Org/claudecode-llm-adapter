@@ -17,11 +17,11 @@ let tmpDir: string
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vampire-flags-test-"))
-  process.env.VAMPIRE_LLM_PROXY_CONFIG_DIR = tmpDir
+  process.env.CLAUDECODE_LLM_ADAPTER_CONFIG_DIR = tmpDir
 })
 
 afterEach(async () => {
-  delete process.env.VAMPIRE_LLM_PROXY_CONFIG_DIR
+  delete process.env.CLAUDECODE_LLM_ADAPTER_CONFIG_DIR
   await fs.rm(tmpDir, { recursive: true, force: true })
 })
 

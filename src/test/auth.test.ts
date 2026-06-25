@@ -15,11 +15,11 @@ let tmpDir: string
 
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vampire-auth-test-"))
-  process.env.VAMPIRE_LLM_PROXY_CONFIG_DIR = tmpDir
+  process.env.CLAUDECODE_LLM_ADAPTER_CONFIG_DIR = tmpDir
 })
 
 afterEach(async () => {
-  delete process.env.VAMPIRE_LLM_PROXY_CONFIG_DIR
+  delete process.env.CLAUDECODE_LLM_ADAPTER_CONFIG_DIR
   await fs.rm(tmpDir, { recursive: true, force: true })
 })
 
@@ -210,26 +210,26 @@ describe("Auth storage — remove", () => {
 })
 
 // ---------------------------------------------------------------------------
-// VAMPIRE_LLM_PROXY_AUTH_CONTENT env var override
+// CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT env var override
 // ---------------------------------------------------------------------------
 
-describe("Auth storage — VAMPIRE_LLM_PROXY_AUTH_CONTENT override", () => {
+describe("Auth storage — CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT override", () => {
   test("all() returns raw env var content when set", async () => {
     const override = { anthropic: { type: "api", key: "sk-from-env" } }
-    process.env.VAMPIRE_LLM_PROXY_AUTH_CONTENT = JSON.stringify(override)
+    process.env.CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT = JSON.stringify(override)
 
     try {
       const result = await runAuth(auth.all())
       // env var is returned as raw object (not schema-decoded) so compare loosely
       expect(result["anthropic"]).toMatchObject({ type: "api", key: "sk-from-env" })
     } finally {
-      delete process.env.VAMPIRE_LLM_PROXY_AUTH_CONTENT
+      delete process.env.CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT
     }
   })
 
-  test("all() reads file when VAMPIRE_LLM_PROXY_AUTH_CONTENT is unset", async () => {
+  test("all() reads file when CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT is unset", async () => {
     await runAuth(auth.set("openai", new Auth.Api({ type: "api", key: "sk-file" })))
-    delete process.env.VAMPIRE_LLM_PROXY_AUTH_CONTENT
+    delete process.env.CLAUDECODE_LLM_ADAPTER_AUTH_CONTENT
 
     const result = await runAuth(auth.all())
     expect(result).toMatchObject({ openai: { type: "api", key: "sk-file" } })

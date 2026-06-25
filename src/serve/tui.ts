@@ -43,7 +43,7 @@ function renderStatus(state: TuiState): string {
   const addr = `http://localhost:${state.port}`
   const stats = `${state.inFlight} in-flight | ${state.requestCount} total`
   const pending = state.pendingChange ? "  ⟳ model change pending…" : ""
-  return `${CLEAR_LINE}🧛 vampire-llm-proxy | ${model} | ${addr} | ${stats}${pending} | [m] switch model  `
+  return `${CLEAR_LINE}claudecode-llm-adapter | ${model} | ${addr} | ${stats}${pending} | [m] switch model  `
 }
 
 // ── Request counter (exported so server.ts can update it) ────────────────────
