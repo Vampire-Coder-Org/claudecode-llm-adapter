@@ -2,9 +2,9 @@
 // REST endpoints. Bun's native HTTP server handles concurrency.
 //
 // Endpoints:
-//   POST /v1/messages       — Anthropic Messages API (primary)
-//   GET  /v1/models         — Returns the active model (OpenAI format)
-//   POST /v1/chat/completions — OpenAI Chat Completions (added in Slice 7)
+//   POST /v1/messages          — Anthropic Messages API
+//   POST /v1/chat/completions  — OpenAI Chat Completions
+//   GET  /v1/models            — Returns the active model (OpenAI format)
 
 import { Effect, Layer, Stream } from "effect"
 import { FetchHttpClient } from "effect/unstable/http"
@@ -17,6 +17,13 @@ import {
   messageStartEvent,
   translateEvent,
 } from "./translate-response.ts"
+import {
+  translateOpenAIRequest,
+  makeOpenAITranslationState,
+  openAIStartEvent,
+  translateOpenAIEvent,
+  type OpenAIRequestBody,
+} from "./translate-openai.ts"
 
 // ── Layer shared across all requests ─────────────────────────────────────────
 
@@ -25,40 +32,21 @@ const llmLayer = LLMClient.layer.pipe(
   Layer.provide(FetchHttpClient.layer),
 )
 
-// ── Request handlers ──────────────────────────────────────────────────────────
+// ── Streaming helper ──────────────────────────────────────────────────────────
 
-async function handleMessages(req: Request): Promise<Response> {
-  const active = getActiveModel()
-  if (!active) {
-    return new Response(JSON.stringify({ error: "No active model" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    })
-  }
-
-  let body: AnthropicRequestBody
-  try {
-    body = (await req.json()) as AnthropicRequestBody
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
-  }
-
-  // Ignore body.model — always use the pre-selected model
-  const llmRequest = translateRequest(body, active.model)
-  const translationState = makeTranslationState(active.modelId)
-
+function streamLLM(
+  llmRequest: ReturnType<typeof translateRequest>,
+  firstChunk: string,
+  toChunk: (event: import("../llm/schema/index.ts").LLMEvent) => string,
+): Response {
   const encoder = new TextEncoder()
 
   const readable = new ReadableStream({
     start(controller) {
-      // Emit the opening message_start event immediately
-      controller.enqueue(encoder.encode(messageStartEvent(translationState)))
+      controller.enqueue(encoder.encode(firstChunk))
 
       const stream = LLMClient.stream(llmRequest).pipe(
-        Stream.map((event) => translateEvent(event, translationState)),
+        Stream.map((event) => toChunk(event)),
         Stream.filter((chunk) => chunk.length > 0),
         Stream.tap((chunk) => Effect.sync(() => controller.enqueue(encoder.encode(chunk)))),
         Stream.runDrain,
@@ -67,7 +55,6 @@ async function handleMessages(req: Request): Promise<Response> {
 
       Effect.runPromise(stream as Effect.Effect<void, never, never>)
         .catch((err) => {
-          // Emit an error event so the client knows something went wrong
           const errChunk = `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: String(err) } })}\n\n`
           controller.enqueue(encoder.encode(errChunk))
         })
@@ -86,17 +73,60 @@ async function handleMessages(req: Request): Promise<Response> {
   })
 }
 
+// ── Request handlers ──────────────────────────────────────────────────────────
+
+async function handleMessages(req: Request): Promise<Response> {
+  const active = getActiveModel()
+  if (!active)
+    return new Response(JSON.stringify({ error: "No active model" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    })
+
+  let body: AnthropicRequestBody
+  try {
+    body = (await req.json()) as AnthropicRequestBody
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  // Ignore body.model — always use the pre-selected model
+  const llmRequest = translateRequest(body, active.model)
+  const state = makeTranslationState(active.modelId)
+  return streamLLM(llmRequest, messageStartEvent(state), (event) => translateEvent(event, state))
+}
+
+async function handleChatCompletions(req: Request): Promise<Response> {
+  const active = getActiveModel()
+  if (!active)
+    return new Response(JSON.stringify({ error: "No active model" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    })
+
+  let body: OpenAIRequestBody
+  try {
+    body = (await req.json()) as OpenAIRequestBody
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  // Ignore body.model — always use the pre-selected model
+  const llmRequest = translateOpenAIRequest(body, active.model)
+  const state = makeOpenAITranslationState(active.modelId)
+  return streamLLM(llmRequest, openAIStartEvent(state), (event) => translateOpenAIEvent(event, state))
+}
+
 function handleModels(): Response {
   const active = getActiveModel()
   const models = active
-    ? [
-        {
-          id: active.modelId,
-          object: "model",
-          created: Math.floor(Date.now() / 1000),
-          owned_by: active.providerId,
-        },
-      ]
+    ? [{ id: active.modelId, object: "model", created: Math.floor(Date.now() / 1000), owned_by: active.providerId }]
     : []
 
   return new Response(JSON.stringify({ object: "list", data: models }), {
@@ -118,7 +148,6 @@ export function startServer(port: number): ServerHandle {
     async fetch(req) {
       const url = new URL(req.url)
 
-      // CORS preflight
       if (req.method === "OPTIONS") {
         return new Response(null, {
           status: 204,
@@ -130,13 +159,9 @@ export function startServer(port: number): ServerHandle {
         })
       }
 
-      if (req.method === "POST" && url.pathname === "/v1/messages") {
-        return handleMessages(req)
-      }
-
-      if (req.method === "GET" && url.pathname === "/v1/models") {
-        return handleModels()
-      }
+      if (req.method === "POST" && url.pathname === "/v1/messages") return handleMessages(req)
+      if (req.method === "POST" && url.pathname === "/v1/chat/completions") return handleChatCompletions(req)
+      if (req.method === "GET" && url.pathname === "/v1/models") return handleModels()
 
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
@@ -145,8 +170,5 @@ export function startServer(port: number): ServerHandle {
     },
   })
 
-  return {
-    port: server.port ?? port,
-    stop: () => server.stop(),
-  }
+  return { port: server.port ?? port, stop: () => server.stop() }
 }
