@@ -843,6 +843,12 @@ const onOutputItemDone = Effect.fn("OpenAIResponses.onOutputItemDone")(function*
     return [{ ...state, lifecycle }, events] satisfies StepResult
   }
 
+  // When a message output item finishes, close any open text blocks it owns.
+  // Required for mixed-output responses (text + function_call in the same turn):
+  // without this, tool-input-start fires while the text block is still open,
+  // causing two content_block_start events at the same blockIndex.
+  if (item.type === "message") return onMessageItemDone(state, event)
+
   if (isReasoningItem(item)) {
     const events: LLMEvent[] = []
     const providerMetadata = reasoningMetadata(item)
@@ -871,6 +877,20 @@ const onOutputItemDone = Effect.fn("OpenAIResponses.onOutputItemDone")(function*
 
   return [state, NO_EVENTS] satisfies StepResult
 })
+
+// Close any text or reasoning blocks that belong to a message output item
+// when that item finishes. This is required when the same response contains
+// both a message item and a function_call item: without closing the message's
+// text blocks here, the function_call item's tool-input-start fires while the
+// text block is still "open", causing two content_block_start events at the
+// same index and "Content block not found" in the Anthropic client.
+const onMessageItemDone = (state: ParserState, event: OpenAIResponsesEvent): StepResult => {
+  const textKey = event.output_index !== undefined ? `text-${event.output_index}` : undefined
+  if (!textKey || !state.lifecycle.text.has(textKey)) return [state, NO_EVENTS]
+  const events: LLMEvent[] = []
+  const lifecycle = Lifecycle.textEnd(state.lifecycle, events, textKey)
+  return [{ ...state, lifecycle }, events]
+}
 
 const onResponseFinish = (state: ParserState, event: OpenAIResponsesEvent): StepResult => {
   const events: LLMEvent[] = []

@@ -52,6 +52,7 @@ function streamLLM(
       controller.enqueue(encoder.encode(firstChunk))
 
       const stream = LLMClient.stream(llmRequest).pipe(
+        Stream.tap((event) => Effect.sync(() => log.debug(`llm-event: ${event.type}`))),
         Stream.map((event) => toChunk(event)),
         Stream.filter((chunk) => chunk.length > 0),
         Stream.tap((chunk) => Effect.sync(() => controller.enqueue(encoder.encode(chunk)))),
