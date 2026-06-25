@@ -8,7 +8,7 @@
     "noUncheckedIndexedAccess": false,
     "types": ["bun-types"],
     "paths": {
-      "@opencode-ai/schema/llm": ["./src/schema/llm.ts"]
+      "@claudecode-ai/schema/llm": ["./src/schema/llm.ts"]
     }
   },
   "include": ["src/**/*"],

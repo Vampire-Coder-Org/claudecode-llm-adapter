@@ -1,5 +1,5 @@
-// Shim for @opencode-ai/schema/llm
-// These are the only types consumed by src/llm/ from the OpenCode schema package.
+// Local shim that satisfies the @claudecode-ai/schema/llm TypeScript path alias.
+// Defines the minimal types consumed by src/llm/ for tool content and provider metadata.
 import { Schema } from "effect"
 
 export const ProviderMetadata = Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Unknown))

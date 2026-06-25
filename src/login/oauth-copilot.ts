@@ -1,5 +1,4 @@
 // GitHub Copilot OAuth — device-code flow (RFC 8628).
-// Logic extracted from OpenCode's packages/opencode/src/plugin/github-copilot/copilot.ts
 
 const CLIENT_ID = "Ov23li8tweQw6odWQebz"
 const API_VERSION = "2026-06-01"
@@ -31,7 +30,7 @@ export async function startCopilotDeviceFlow(enterpriseUrl?: string): Promise<Co
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": `vampire-llm-proxy/0.1.0`,
+      "User-Agent": `claudecode-llm-adapter/0.1.0`,
     },
     body: JSON.stringify({ client_id: CLIENT_ID, scope: "read:user" }),
   })
@@ -56,7 +55,7 @@ export async function startCopilotDeviceFlow(enterpriseUrl?: string): Promise<Co
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "User-Agent": `vampire-llm-proxy/0.1.0`,
+          "User-Agent": `claudecode-llm-adapter/0.1.0`,
         },
         body: JSON.stringify({
           client_id: CLIENT_ID,

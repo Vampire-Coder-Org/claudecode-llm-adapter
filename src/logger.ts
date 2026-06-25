@@ -1,4 +1,4 @@
-// Lightweight structured logger for vampire-llm-proxy.
+// Lightweight structured logger for claudecode-llm-adapter.
 // Writes to stdout with timestamps. No external dependencies.
 
 type Level = "info" | "warn" | "error" | "debug"

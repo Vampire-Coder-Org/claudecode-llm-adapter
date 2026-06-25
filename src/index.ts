@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// vampire-llm-proxy — CLI entry point
+// claudecode-llm-adapter — CLI entry point
 
 const args = process.argv.slice(2)
 const command = args[0]
@@ -14,7 +14,7 @@ const providerFlag = flag("--provider")
 const modelFlag = flag("--model")
 
 if (!command) {
-  console.log("Usage: vampire-llm-proxy <--login | --serve> [options]")
+  console.log("Usage: claudecode-llm-adapter <--login | --serve> [options]")
   console.log("       --serve [--port <n>] [--provider <id> --model <id>]")
   process.exit(0)
 }
@@ -22,7 +22,7 @@ if (!command) {
 // --provider and --model must always be passed together
 if ((providerFlag && !modelFlag) || (!providerFlag && modelFlag)) {
   console.error("Error: --provider and --model must be used together.")
-  console.error("Usage: vampire-llm-proxy --serve --provider <id> --model <id>")
+  console.error("Usage: claudecode-llm-adapter --serve --provider <id> --model <id>")
   process.exit(1)
 }
 
@@ -38,6 +38,6 @@ if (command === "--serve") {
   // runServe keeps the process alive — no process.exit here
 } else {
   console.error(`Unknown command: ${command}`)
-  console.error("Usage: vampire-llm-proxy <--login | --serve> [--port <number>]")
+  console.error("Usage: claudecode-llm-adapter <--login | --serve> [--port <number>]")
   process.exit(1)
 }

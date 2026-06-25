@@ -1,11 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "vampire-llm-proxy",
+  "name": "claudecode-llm-adapter",
   "version": "0.1.0",
   "type": "module",
   "private": true,
   "bin": {
-    "vampire-llm-proxy": "./src/index.ts"
+    "claudecode-llm-adapter": "./src/index.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",

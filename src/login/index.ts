@@ -15,7 +15,7 @@ import { startXaiDeviceFlow } from "./oauth-xai.ts"
 // ---------------------------------------------------------------------------
 
 export async function runLogin(): Promise<void> {
-  p.intro("vampire-llm-proxy — login")
+  p.intro("claudecode-llm-adapter — login")
 
   // ── Provider selection ────────────────────────────────────────────────────
   const selected = await p.select({
