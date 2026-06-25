@@ -1,5 +1,9 @@
-// Hardcoded model catalog per provider.
-// Displayed in the --serve model picker.
+// Model catalog — hardcoded entries for non-Copilot providers.
+// For GitHub Copilot and GitHub Copilot Enterprise the live model list
+// is fetched from the Copilot /models API via resolveModels().
+
+import { fetchCopilotModels, copilotBaseURL, copilotToken } from "./copilot-models.ts"
+import type { Info as AuthInfo } from "../auth/index.ts"
 
 export interface ModelEntry {
   readonly providerId: string
@@ -7,6 +11,7 @@ export interface ModelEntry {
   readonly displayName: string
 }
 
+// Hardcoded catalog for non-Copilot providers
 export const modelCatalog: ModelEntry[] = [
   // ── Anthropic ───────────────────────────────────────────────────────────
   { providerId: "anthropic", modelId: "claude-opus-4-5", displayName: "Claude Opus 4.5" },
@@ -27,16 +32,13 @@ export const modelCatalog: ModelEntry[] = [
   { providerId: "google", modelId: "gemini-2.5-pro", displayName: "Gemini 2.5 Pro" },
   { providerId: "google", modelId: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash" },
   { providerId: "google", modelId: "gemini-2.0-flash", displayName: "Gemini 2.0 Flash" },
-  // ── GitHub Copilot ──────────────────────────────────────────────────────
+  // ── GitHub Copilot (github.com) — fallback only ──────────────────────────
+  // These are used only when the live /models API call fails.
   { providerId: "github-copilot", modelId: "claude-opus-4-5", displayName: "GitHub Copilot — Claude Opus 4.5" },
   { providerId: "github-copilot", modelId: "claude-sonnet-4-5", displayName: "GitHub Copilot — Claude Sonnet 4.5" },
   { providerId: "github-copilot", modelId: "gpt-4.1", displayName: "GitHub Copilot — GPT-4.1" },
   { providerId: "github-copilot", modelId: "gpt-4o", displayName: "GitHub Copilot — GPT-4o" },
-  // ── GitHub Copilot Enterprise ────────────────────────────────────────────
-  // Enterprise exposes the same model roster as github.com Copilot.
-  // The actual available models depend on what your GHE admin has enabled;
-  // these are the most common ones. The proxy uses the enterpriseUrl stored
-  // in the credential to route requests to the correct Copilot API endpoint.
+  // ── GitHub Copilot Enterprise — fallback only ────────────────────────────
   { providerId: "github-copilot-enterprise", modelId: "claude-opus-4-5", displayName: "GHE Copilot — Claude Opus 4.5" },
   { providerId: "github-copilot-enterprise", modelId: "claude-sonnet-4-5", displayName: "GHE Copilot — Claude Sonnet 4.5" },
   { providerId: "github-copilot-enterprise", modelId: "claude-haiku-3-5", displayName: "GHE Copilot — Claude Haiku 3.5" },
@@ -49,6 +51,32 @@ export const modelCatalog: ModelEntry[] = [
   { providerId: "xai", modelId: "grok-2-1212", displayName: "Grok 2" },
 ]
 
+/** Returns hardcoded models for a provider (used as fallback). */
 export function modelsForProvider(providerId: string): ModelEntry[] {
   return modelCatalog.filter((m) => m.providerId === providerId)
+}
+
+const COPILOT_PROVIDERS = new Set(["github-copilot", "github-copilot-enterprise"])
+
+/**
+ * Resolve the model list for a provider.
+ *
+ * For GitHub Copilot providers: fetch live from the /models API, fall back
+ * to the hardcoded catalog if the request fails or times out.
+ *
+ * For all other providers: return the hardcoded catalog immediately.
+ */
+export async function resolveModels(
+  providerId: string,
+  cred: AuthInfo,
+): Promise<{ models: ModelEntry[]; live: boolean }> {
+  if (COPILOT_PROVIDERS.has(providerId)) {
+    const baseURL = copilotBaseURL(cred)
+    const token = copilotToken(cred)
+    const live = await fetchCopilotModels(baseURL, token, providerId)
+    if (live && live.length > 0) return { models: live, live: true }
+    // API unreachable or empty — fall back to hardcoded list
+    return { models: modelsForProvider(providerId), live: false }
+  }
+  return { models: modelsForProvider(providerId), live: true }
 }

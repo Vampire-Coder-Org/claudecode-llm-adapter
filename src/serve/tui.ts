@@ -15,7 +15,7 @@ import { Effect, Layer } from "effect"
 import * as Auth from "../auth/index.ts"
 import { FSUtil } from "../fs-util.ts"
 import { providers } from "../login/providers.ts"
-import { modelsForProvider } from "./model-catalog.ts"
+import { resolveModels } from "./model-catalog.ts"
 import { setActiveModel } from "./active-model.ts"
 import { buildModel } from "./build-model.ts"
 import type { ServerHandle } from "./server.ts"
@@ -143,9 +143,7 @@ export async function runTui(
 async function openModelPicker(
   credentials: Record<string, Auth.Info>,
 ): Promise<{ providerId: string; modelId: string } | null> {
-  const availableProviders = providers.filter(
-    (prov) => credentials[prov.id] !== undefined && modelsForProvider(prov.id).length > 0,
-  )
+  const availableProviders = providers.filter((prov) => credentials[prov.id] !== undefined)
 
   if (availableProviders.length === 0) {
     p.log.error("No authenticated providers found.")
@@ -159,10 +157,25 @@ async function openModelPicker(
 
   if (p.isCancel(selectedProvider)) return null
 
-  const availableModels = modelsForProvider(selectedProvider as string)
+  const providerId = selectedProvider as string
+  const cred = credentials[providerId]!
+  const isCopilot = providerId === "github-copilot" || providerId === "github-copilot-enterprise"
+
+  const spinner = p.spinner()
+  if (isCopilot) spinner.start("Fetching models from Copilot API…")
+  const { models, live } = await resolveModels(providerId, cred)
+  if (isCopilot) {
+    spinner.stop(live ? `Fetched ${models.length} models.` : "Using fallback model list.")
+  }
+
+  if (models.length === 0) {
+    p.log.error(`No models available for ${providerId}.`)
+    return null
+  }
+
   const selectedModel = await p.select({
     message: "Select a model",
-    options: availableModels.map((m) => ({ value: m.modelId, label: m.displayName })),
+    options: models.map((m) => ({ value: m.modelId, label: m.displayName })),
   })
 
   if (p.isCancel(selectedModel)) return null
