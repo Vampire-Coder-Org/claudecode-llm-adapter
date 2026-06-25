@@ -63,3 +63,15 @@ bun install
 bun test
 bun run typecheck
 ```
+
+### Build standalone executable
+
+You can compile the adapter into a standalone binary using Bun:
+
+```bash
+bun run build
+```
+
+The output executable will be placed at `./dist/claudecode-llm-adapter`.
+
+Cross-platform build scripts are also available: `build:mac-arm64`, `build:mac-x64`, `build:linux-x64`, and `build:windows-x64`.

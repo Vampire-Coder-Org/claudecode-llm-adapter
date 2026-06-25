@@ -10,7 +10,12 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "bun build ./src/index.ts --compile --outfile ./dist/claudecode-llm-adapter",
+    "build:mac-arm64": "bun build ./src/index.ts --compile --target=bun-darwin-arm64 --outfile ./dist/claudecode-llm-adapter-darwin-arm64",
+    "build:mac-x64": "bun build ./src/index.ts --compile --target=bun-darwin-x64 --outfile ./dist/claudecode-llm-adapter-darwin-x64",
+    "build:linux-x64": "bun build ./src/index.ts --compile --target=bun-linux-x64 --outfile ./dist/claudecode-llm-adapter-linux-x64",
+    "build:windows-x64": "bun build ./src/index.ts --compile --target=bun-windows-x64 --outfile ./dist/claudecode-llm-adapter-windows-x64.exe"
   },
   "dependencies": {
     "@clack/prompts": "^1.6.0",
