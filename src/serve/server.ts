@@ -24,6 +24,7 @@ import {
   translateOpenAIEvent,
   type OpenAIRequestBody,
 } from "./translate-openai.ts"
+import { log } from "../logger.ts"
 
 // ── Layer shared across all requests ─────────────────────────────────────────
 
@@ -35,11 +36,16 @@ const llmLayer = LLMClient.layer.pipe(
 // ── Streaming helper ──────────────────────────────────────────────────────────
 
 function streamLLM(
+  req: Request,
   llmRequest: ReturnType<typeof translateRequest>,
   firstChunk: string,
   toChunk: (event: import("../llm/schema/index.ts").LLMEvent) => string,
+  active: { providerId: string; modelId: string },
 ): Response {
   const encoder = new TextEncoder()
+  const startMs = Date.now()
+
+  log.request(req, active.providerId, active.modelId)
 
   const readable = new ReadableStream({
     start(controller) {
@@ -55,10 +61,14 @@ function streamLLM(
 
       Effect.runPromise(stream as Effect.Effect<void, never, never>)
         .catch((err) => {
+          log.streamError(err)
           const errChunk = `event: error\ndata: ${JSON.stringify({ type: "error", error: { type: "api_error", message: String(err) } })}\n\n`
           controller.enqueue(encoder.encode(errChunk))
         })
-        .finally(() => controller.close())
+        .finally(() => {
+          log.response(req, Date.now() - startMs, 200)
+          controller.close()
+        })
     },
   })
 
@@ -77,16 +87,19 @@ function streamLLM(
 
 async function handleMessages(req: Request): Promise<Response> {
   const active = getActiveModel()
-  if (!active)
+  if (!active) {
+    log.warn("POST /v1/messages: no active model")
     return new Response(JSON.stringify({ error: "No active model" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     })
+  }
 
   let body: AnthropicRequestBody
   try {
     body = (await req.json()) as AnthropicRequestBody
-  } catch {
+  } catch (err) {
+    log.warn("POST /v1/messages: invalid JSON", { error: String(err) })
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -96,21 +109,24 @@ async function handleMessages(req: Request): Promise<Response> {
   // Ignore body.model — always use the pre-selected model
   const llmRequest = translateRequest(body, active.model)
   const state = makeTranslationState(active.modelId)
-  return streamLLM(llmRequest, messageStartEvent(state), (event) => translateEvent(event, state))
+  return streamLLM(req, llmRequest, messageStartEvent(state), (event) => translateEvent(event, state), active)
 }
 
 async function handleChatCompletions(req: Request): Promise<Response> {
   const active = getActiveModel()
-  if (!active)
+  if (!active) {
+    log.warn("POST /v1/chat/completions: no active model")
     return new Response(JSON.stringify({ error: "No active model" }), {
       status: 503,
       headers: { "Content-Type": "application/json" },
     })
+  }
 
   let body: OpenAIRequestBody
   try {
     body = (await req.json()) as OpenAIRequestBody
-  } catch {
+  } catch (err) {
+    log.warn("POST /v1/chat/completions: invalid JSON", { error: String(err) })
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -120,7 +136,7 @@ async function handleChatCompletions(req: Request): Promise<Response> {
   // Ignore body.model — always use the pre-selected model
   const llmRequest = translateOpenAIRequest(body, active.model)
   const state = makeOpenAITranslationState(active.modelId)
-  return streamLLM(llmRequest, openAIStartEvent(state), (event) => translateOpenAIEvent(event, state))
+  return streamLLM(req, llmRequest, openAIStartEvent(state), (event) => translateOpenAIEvent(event, state), active)
 }
 
 function handleModels(): Response {

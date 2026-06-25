@@ -17,6 +17,7 @@ import { startServer } from "./server.ts"
 import { buildModel } from "./build-model.ts"
 import { runTui } from "./tui.ts"
 import { copilotBaseURL, copilotToken, fetchCopilotModels } from "./copilot-models.ts"
+import { log } from "../logger.ts"
 
 export interface ServeFlags {
   readonly provider: string
@@ -190,6 +191,8 @@ export async function runServe(port: number, flags?: ServeFlags): Promise<void> 
   setActiveModel(initialState)
 
   const server = startServer(port)
+
+  log.info("proxy started", { provider: providerId, model: modelId, port: server.port })
 
   process.on("SIGTERM", () => {
     server.stop()
