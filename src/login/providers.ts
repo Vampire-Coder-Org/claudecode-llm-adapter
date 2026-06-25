@@ -21,7 +21,7 @@ export interface OAuthProviderDef {
   readonly id: string
   readonly name: string
   readonly authType: "oauth"
-  readonly flow: "github-copilot" | "xai"
+  readonly flow: "github-copilot" | "github-copilot-enterprise" | "xai"
 }
 
 export type ProviderDef = ApiProviderDef | OAuthProviderDef
@@ -83,6 +83,13 @@ export const providers: ProviderDef[] = [
     name: "GitHub Copilot",
     authType: "oauth",
     flow: "github-copilot",
+  },
+  // ── GitHub Copilot Enterprise ─────────────────────────────────────────────
+  {
+    id: "github-copilot-enterprise",
+    name: "GitHub Copilot Enterprise",
+    authType: "oauth",
+    flow: "github-copilot-enterprise",
   },
   // ── xAI (Grok) ───────────────────────────────────────────────────────────
   {

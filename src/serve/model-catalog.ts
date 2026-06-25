@@ -32,6 +32,17 @@ export const modelCatalog: ModelEntry[] = [
   { providerId: "github-copilot", modelId: "claude-sonnet-4-5", displayName: "GitHub Copilot — Claude Sonnet 4.5" },
   { providerId: "github-copilot", modelId: "gpt-4.1", displayName: "GitHub Copilot — GPT-4.1" },
   { providerId: "github-copilot", modelId: "gpt-4o", displayName: "GitHub Copilot — GPT-4o" },
+  // ── GitHub Copilot Enterprise ────────────────────────────────────────────
+  // Enterprise exposes the same model roster as github.com Copilot.
+  // The actual available models depend on what your GHE admin has enabled;
+  // these are the most common ones. The proxy uses the enterpriseUrl stored
+  // in the credential to route requests to the correct Copilot API endpoint.
+  { providerId: "github-copilot-enterprise", modelId: "claude-opus-4-5", displayName: "GHE Copilot — Claude Opus 4.5" },
+  { providerId: "github-copilot-enterprise", modelId: "claude-sonnet-4-5", displayName: "GHE Copilot — Claude Sonnet 4.5" },
+  { providerId: "github-copilot-enterprise", modelId: "claude-haiku-3-5", displayName: "GHE Copilot — Claude Haiku 3.5" },
+  { providerId: "github-copilot-enterprise", modelId: "gpt-4.1", displayName: "GHE Copilot — GPT-4.1" },
+  { providerId: "github-copilot-enterprise", modelId: "gpt-4o", displayName: "GHE Copilot — GPT-4o" },
+  { providerId: "github-copilot-enterprise", modelId: "gpt-4o-mini", displayName: "GHE Copilot — GPT-4o Mini" },
   // ── xAI ─────────────────────────────────────────────────────────────────
   { providerId: "xai", modelId: "grok-3", displayName: "Grok 3" },
   { providerId: "xai", modelId: "grok-3-mini", displayName: "Grok 3 Mini" },

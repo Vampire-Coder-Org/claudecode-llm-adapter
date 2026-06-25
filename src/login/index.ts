@@ -108,7 +108,43 @@ async function loginOAuth(prov: import("./providers.ts").OAuthProviderDef): Prom
             access: r.access,
             refresh: r.refresh,
             expires: r.expires,
-            ...(r.enterpriseUrl ? { enterpriseUrl: r.enterpriseUrl } : {}),
+          })
+        },
+      }
+    } else if (prov.flow === "github-copilot-enterprise") {
+      // Prompt for the enterprise server URL before starting the device flow
+      spinner.stop("Enterprise URL needed.")
+
+      const rawUrl = await p.text({
+        message: "GitHub Enterprise server URL",
+        placeholder: "https://github.example.com  or  github.example.com",
+        validate: (v) => {
+          if (!v) return "Enterprise URL is required"
+          const normalized = v.replace(/^https?:\/\//, "").replace(/\/$/, "")
+          if (!normalized.includes(".")) return "Enter a valid hostname (e.g. github.example.com)"
+        },
+      })
+
+      if (p.isCancel(rawUrl)) {
+        p.cancel("Login cancelled.")
+        process.exit(0)
+      }
+
+      const enterpriseUrl = (rawUrl as string).replace(/^https?:\/\//, "").replace(/\/$/, "")
+      spinner.start("Starting OAuth device authorization…")
+
+      const result = await startCopilotDeviceFlow(enterpriseUrl)
+      deviceStart = {
+        verificationUri: result.verificationUri,
+        userCode: result.userCode,
+        poll: async () => {
+          const r = await result.poll()
+          return new Auth.Oauth({
+            type: "oauth",
+            access: r.access,
+            refresh: r.refresh,
+            expires: r.expires,
+            enterpriseUrl: r.enterpriseUrl ?? enterpriseUrl,
           })
         },
       }

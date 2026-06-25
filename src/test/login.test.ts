@@ -71,6 +71,14 @@ describe("Login — provider catalog", () => {
     expect(copilot?.authType).toBe("oauth")
   })
 
+  test("github-copilot-enterprise is a separate oauth provider", () => {
+    const enterprise = providers.find((p) => p.id === "github-copilot-enterprise")
+    expect(enterprise?.authType).toBe("oauth")
+    if (enterprise?.authType === "oauth") {
+      expect(enterprise.flow).toBe("github-copilot-enterprise")
+    }
+  })
+
   test("xai is an oauth provider", () => {
     const xai = providers.find((p) => p.id === "xai")
     expect(xai?.authType).toBe("oauth")
@@ -137,6 +145,44 @@ describe("Login — oauth credential persistence", () => {
     )
     const stored = await authGet("github-copilot")
     expect(stored).toMatchObject({ type: "oauth", access: "gha_access", refresh: "gha_refresh" })
+  })
+
+  test("github-copilot-enterprise credential stores enterpriseUrl", async () => {
+    await authSet(
+      "github-copilot-enterprise",
+      new Auth.Oauth({
+        type: "oauth",
+        access: "ghe_access",
+        refresh: "ghe_refresh",
+        expires: 0,
+        enterpriseUrl: "github.example.com",
+      }),
+    )
+    const stored = await authGet("github-copilot-enterprise")
+    expect(stored).toMatchObject({
+      type: "oauth",
+      access: "ghe_access",
+      enterpriseUrl: "github.example.com",
+    })
+  })
+
+  test("github-copilot and github-copilot-enterprise credentials are stored independently", async () => {
+    await authSet(
+      "github-copilot",
+      new Auth.Oauth({ type: "oauth", access: "public_access", refresh: "public_refresh", expires: 0 }),
+    )
+    await authSet(
+      "github-copilot-enterprise",
+      new Auth.Oauth({
+        type: "oauth",
+        access: "enterprise_access",
+        refresh: "enterprise_refresh",
+        expires: 0,
+        enterpriseUrl: "github.example.com",
+      }),
+    )
+    expect(await authGet("github-copilot")).toMatchObject({ access: "public_access" })
+    expect(await authGet("github-copilot-enterprise")).toMatchObject({ access: "enterprise_access" })
   })
 
   test("xai oauth credential is written with expiry", async () => {

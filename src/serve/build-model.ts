@@ -23,7 +23,8 @@ export function buildModel(providerId: string, modelId: string, cred: AuthInfo):
       const apiKey = cred.type === "api" ? cred.key : undefined
       return Google.configure(apiKey ? { apiKey } : {}).model(modelId)
     }
-    case "github-copilot": {
+    case "github-copilot":
+    case "github-copilot-enterprise": {
       const token = cred.type === "oauth" ? cred.access : cred.type === "api" ? cred.key : undefined
       const enterpriseUrl = cred.type === "oauth" ? cred.enterpriseUrl : undefined
       const baseURL = enterpriseUrl
