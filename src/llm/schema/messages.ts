@@ -42,30 +42,24 @@ export type MediaPart = Schema.Schema.Type<typeof MediaPart>
 
 export { ToolContent, ToolFileContent, ToolTextContent }
 
+// Declare the ToolResultValue schema first, then derive the type and is-guard,
+// to break the tsgo/tsc circular-inference difference.
+const ToolResultValueSchema = Schema.Union([
+  Schema.Struct({ type: Schema.Literal("json"), value: Schema.Unknown }),
+  Schema.Struct({ type: Schema.Literal("text"), value: Schema.Unknown }),
+  Schema.Struct({ type: Schema.Literal("error"), value: Schema.Unknown }),
+  Schema.Struct({ type: Schema.Literal("content"), value: Schema.Array(ToolContent) }),
+]).annotate({ identifier: "LLM.ToolResult" })
+
+export type ToolResultValue = Schema.Schema.Type<typeof ToolResultValueSchema>
+
 const isToolResultValue = (value: unknown): value is ToolResultValue =>
   isRecord(value) &&
   (value.type === "text" || value.type === "json" || value.type === "error" || value.type === "content") &&
   "value" in value
 
 export const ToolResultValue = Object.assign(
-  Schema.Union([
-    Schema.Struct({
-      type: Schema.Literal("json"),
-      value: Schema.Unknown,
-    }),
-    Schema.Struct({
-      type: Schema.Literal("text"),
-      value: Schema.Unknown,
-    }),
-    Schema.Struct({
-      type: Schema.Literal("error"),
-      value: Schema.Unknown,
-    }),
-    Schema.Struct({
-      type: Schema.Literal("content"),
-      value: Schema.Array(ToolContent),
-    }),
-  ]).annotate({ identifier: "LLM.ToolResult" }),
+  ToolResultValueSchema,
   {
     is: isToolResultValue,
     make: (value: unknown, type: ToolResultValue["type"] = "json"): ToolResultValue => {
@@ -75,7 +69,6 @@ export const ToolResultValue = Object.assign(
     },
   },
 )
-export type ToolResultValue = Schema.Schema.Type<typeof ToolResultValue>
 
 export interface ToolOutput {
   readonly structured: unknown

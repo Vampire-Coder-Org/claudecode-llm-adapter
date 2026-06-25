@@ -18,10 +18,13 @@ if (command === "--login") {
 }
 
 if (command === "--serve") {
-  console.log(`--serve: not yet implemented (port: ${port})`)
-  process.exit(0)
+  const { runServe } = await import("./serve/index.ts")
+  await runServe(port)
+  // runServe keeps the process alive — no process.exit here
 }
 
-console.error(`Unknown command: ${command}`)
-console.error("Usage: vampire-llm-proxy <--login | --serve> [--port <number>]")
-process.exit(1)
+if (!["--login", "--serve"].includes(command)) {
+  console.error(`Unknown command: ${command}`)
+  console.error("Usage: vampire-llm-proxy <--login | --serve> [--port <number>]")
+  process.exit(1)
+}
