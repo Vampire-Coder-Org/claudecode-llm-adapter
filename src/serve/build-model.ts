@@ -50,11 +50,12 @@ export function buildModel(providerId: string, modelId: string, cred: AuthInfo):
         return route.model({ id: modelId })
       }
 
-      // GPT and other non-Claude models use OpenAI Chat Completions (/v1/chat/completions).
-      // Explicitly call .chat() instead of .model() to prevent shouldUseResponsesApi()
-      // from routing GPT 5.x models through the OpenAI Responses protocol — GHE only
-      // serves the Chat Completions endpoint, not the Responses API.
-      return GithubCopilot.configure({ baseURL, ...(token ? { apiKey: token } : {}) }).chat(modelId)
+      // GPT 4.x and older → OpenAI Chat Completions (/v1/chat/completions).
+      // GPT 5.x → OpenAI Responses API (/v1/responses) — GHE returns 400 for
+      // gpt-5.x on /v1/chat/completions. Use .chat() to force Chat for all,
+      // but .model() delegates to shouldUseResponsesApi() which picks the right
+      // endpoint per model family.
+      return GithubCopilot.configure({ baseURL, ...(token ? { apiKey: token } : {}) }).model(modelId)
     }
     case "xai": {
       const apiKey = cred.type === "api" ? cred.key : cred.type === "oauth" ? cred.access : undefined

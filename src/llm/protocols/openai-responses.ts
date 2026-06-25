@@ -210,6 +210,7 @@ const OpenAIResponsesEvent = Schema.Struct({
   type: Schema.String,
   delta: Schema.optional(Schema.String),
   item_id: Schema.optional(Schema.String),
+  output_index: Schema.optional(Schema.Number),
   summary_index: Schema.optional(Schema.Number),
   item: Schema.optional(OpenAIResponsesStreamItem),
   response: Schema.optional(
@@ -657,12 +658,16 @@ const onOutputItemAdded = (state: ParserState, event: OpenAIResponsesEvent): Ste
   const providerMetadata = openaiMetadata({ itemId: item.id })
   const events: LLMEvent[] = []
   const lifecycle = Lifecycle.stepStart(state.lifecycle, events)
+  // Use output_index as the tool-stream key when available. GitHub Copilot Enterprise
+  // rotates/encrypts item.id per-event, so item.id in output_item.added never matches
+  // item_id in subsequent function_call_arguments.delta events. output_index is stable.
+  const toolKey = event.output_index !== undefined ? String(event.output_index) : item.id
   return [
     {
       ...state,
       lifecycle,
       hasFunctionCall: state.hasFunctionCall,
-      tools: ToolStream.start(state.tools, item.id, {
+      tools: ToolStream.start(state.tools, toolKey, {
         id: item.call_id ?? item.id,
         name: item.name ?? "",
         input: item.arguments ?? "",
@@ -774,11 +779,14 @@ const onFunctionCallArgumentsDelta = Effect.fn("OpenAIResponses.onFunctionCallAr
   state: ParserState,
   event: OpenAIResponsesEvent,
 ) {
-  if (!event.item_id || !event.delta) return [state, NO_EVENTS] satisfies StepResult
+  if (!event.item_id && event.output_index === undefined) return [state, NO_EVENTS] satisfies StepResult
+  if (!event.delta) return [state, NO_EVENTS] satisfies StepResult
+  // Use output_index as primary key (stable at GHE); fall back to item_id (standard OpenAI).
+  const toolKey = event.output_index !== undefined ? String(event.output_index) : event.item_id!
   const result = ToolStream.appendExisting(
     ADAPTER,
     state.tools,
-    event.item_id,
+    toolKey,
     event.delta,
     "OpenAI Responses tool argument delta is missing its tool call",
   )
