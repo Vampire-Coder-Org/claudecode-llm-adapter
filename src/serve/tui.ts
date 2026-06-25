@@ -66,6 +66,20 @@ export async function runTui(
   server: ServerHandle,
   credentials: Record<string, Auth.Info>,
 ): Promise<void> {
+  const isTTY = process.stdout.isTTY === true
+
+  // When stdout is not a TTY (background/piped), skip the visual TUI entirely.
+  // The HTTP server is already running; just keep the process alive.
+  if (!isTTY) {
+    await new Promise<void>(() => {
+      process.on("SIGTERM", () => {
+        server.stop()
+        process.exit(0)
+      })
+    })
+    return
+  }
+
   // Hide cursor for cleaner display
   process.stdout.write(HIDE_CURSOR)
 
