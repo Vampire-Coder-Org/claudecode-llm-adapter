@@ -99,6 +99,7 @@ function translateMessage(msg: AnthropicMessage): Message[] {
             id: part.tool_use_id as ToolCallID,
             name: "",
             result: resultContent,
+            resultType: "text", // tool results are plain text, not JSON-encoded values
           }),
         )
       } else if (part.type === "text") {
